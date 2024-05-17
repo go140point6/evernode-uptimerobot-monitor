@@ -1,2 +1,2 @@
 # evernode-uptimerobot-monitor
-Monitor Evernode heartbeat with Uptime Robot
+Monitor Evernode status with Uptime Robot
