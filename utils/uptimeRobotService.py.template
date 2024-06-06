@@ -1,0 +1,17 @@
+import socket
+
+HOST = '0.0.0.0'  # Listen on all interfaces
+PORT = {{PORT}}
+
+def main():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((HOST, PORT))
+        s.listen()
+        print(f"Uptime Robot service listening on port {PORT}")
+        while True:
+            conn, addr = s.accept()
+            with conn:
+                print('Connection from', addr)
+
+if __name__ == "__main__":
+    main()

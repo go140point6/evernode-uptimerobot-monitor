@@ -1,0 +1,90 @@
+const { spawn } = require('child_process');
+
+function spawnAsync(command, args, options) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(command, args, options);
+
+        let stdoutData = '';
+        let stderrData = '';
+
+        child.stdout.on('data', (data) => {
+            stdoutData += data.toString();
+        });
+
+        child.stderr.on('data', (data) => {
+            stderrData += data.toString();
+        });
+
+        child.on('error', (err) => {
+            reject(err);
+        });
+
+        child.on('exit', (code, signal) => {
+            if (code === 0) {
+                resolve({ stdout: stdoutData, stderr: stderrData });
+            } else {
+                reject(new Error(`Exited with code ${code}`));
+            }
+        });
+
+        child.on('close', (code) => {
+            if (code === 0) {
+                resolve({ stdout: stdoutData, stderr: stderrData });
+            } else {
+                reject(new Error(`Closed with code ${code}`));
+            }
+        });
+    });
+}
+
+async function checkStatus() {
+
+    const data = {
+        hostStatus: false,
+        sashiAgentStatus: false,
+        sashiMbStatus: false,
+        reputationdStatus: false 
+      }
+
+    try {
+        let alert
+        const { stdout, stderr } = await spawnAsync('evernode', ['status']);
+        
+        const lines = stdout.split('\n')
+        lines.forEach((line) => {
+            if (line.includes('Host status:')) {
+                if (line.trim() === 'Host status: active') {
+                    data.hostStatus = true
+                }
+            }
+            if (line.includes('Sashimono agent status:')) {
+                if (line.trim() === 'Sashimono agent status: active') {
+                    data.sashiAgentStatus = true
+                }
+            }
+            if (line.includes('Sashimono message board status:')) {
+                if (line.trim() === 'Sashimono message board status: active') {
+                    data.sashiMbStatus = true
+                }
+            }
+            if (line.includes('Evernode reputationd status:')) {
+                if (line.trim() === 'Evernode reputationd status: active') {
+                    data.reputationdStatus = true
+                }
+            }
+        })
+
+        if (stderr) {
+            console.error(`stderr: ${stderr}`)
+        }
+
+        console.log("Evernode status command executed successfully.")
+        return(data)
+    } catch(error) {
+        console.error("Error:", error.message)
+    }
+}
+
+module.exports = {
+    checkStatus
+}
