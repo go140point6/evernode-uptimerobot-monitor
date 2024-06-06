@@ -20,9 +20,9 @@ const isServiceRunning = async () => {
 
 const startService = async () => {
   const status = await isServiceRunning()
-  console.log("Heartbeat detected, current lease and gas levels OK, ensure uptimeRobot.service is started...")
+  console.log("All systems go, ensure uptimeRobot.service is started...")
   if (status === true) {
-    console.log("Service is already started.")
+    console.log("[GREEN] Service is already started.")
     return
   } else if (status === false) {
     try {
@@ -30,7 +30,7 @@ const startService = async () => {
       if (stderr) {
         console.error(`Error starting service: ${stderr}`)
       } else {
-        console.log("Service started.")
+        console.log("[GREEN] Service started.")
         //const results = await exec("sudo systemctl status uptimeRobot.service")
         //console.log("Results: ", results.stdout) 
       }
@@ -44,7 +44,7 @@ const stopService = async () => {
   const status = await isServiceRunning()
   console.log("Alert triggered for one or more reasons noted above, ensure uptimeRobot.service is stopped...")
   if (status === false) {
-    console.log("Service is already stopped.")
+    console.log("[RED] Service is already stopped.")
     return
   } else if (status === true) {
     try {
@@ -52,7 +52,7 @@ const stopService = async () => {
       if (stderr) {
         console.error(`Error stopping service: ${stderr}`)
       } else {
-        console.log("Service stopped.")
+        console.log("[RED] Service stopped.")
         //const results = await exec("sudo systemctl status uptimeRobot.service")
         //console.log("Results: ", results.stdout) 
       }

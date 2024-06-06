@@ -5,7 +5,7 @@
 - Must be installed on the Evernode host.
 - Creates a dummy service listening on user-defined port.
 - Configure Uptime Robot (only support alert mechanism in this version) to monitor that port.
-- Designed for single alert, anything goes wrong trigger alert for user to investigate.
+- Designed for single alert, anything goes wrong and alert will trigger. Review log for specifics.
 
 #### Features
 - Fully automatic install and uninstallation via bash shell script.
@@ -17,4 +17,13 @@
 - Uses PM2 process manager for logging and ensuring automatic startup on system reboot or app crash.
 
 #### To Install
+- Clone the repo and install dependencies
+```sh
+git clone https://github.com/go140point6/evernode-uptimerobot-monitor.git
+cd evernode-uptimerobot-monitor
+npm install
+```
+- Run the setup script (requires sudo)
+```sh
+./utils/setupUptimeRobotService.sh
 

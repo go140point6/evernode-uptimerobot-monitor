@@ -30,7 +30,8 @@ fi
 # Get the absolute path of the directories
 MONITOR_DIR=$HOME/evernode-uptimerobot-monitor
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-source $SCRIPT_DIR/evernode_monitor.vars
+VARS_FILE=evernode_monitor.vars
+source $SCRIPT_DIR/$VARS_FILE
 
 
 FUNC_VERIFY() {
@@ -162,6 +163,24 @@ FUNC_FIREWALL_CONFIG(){
 }
 
 
+FUNC_CREATE_ENV(){
+    echo -e
+    echo -e "${GREEN}#########################################################################${NC}"
+    echo -e
+    echo -e "${GREEN}## ${YELLOW}Setup: Set up the .env file if not present... ${NC}"
+    echo -e
+
+    TMP_FILE04=$(mktemp)
+    sed -n '/## BEGIN - DO NOT CHANGE THIS LINE/,/## END - DO NOT CHANGE THIS LINE/p' $SCRIPT_DIR/$VARS_FILE > $TMP_FILE04
+    sed -i '/## BEGIN - DO NOT CHANGE THIS LINE/d' $TMP_FILE04
+    sed -i '/## END - DO NOT CHANGE THIS LINE/d' $TMP_FILE04
+
+    # Move the temp file to the desired location
+    sh -c "cat $TMP_FILE04 > $MONITOR_DIR/.env"
+    echo -e "OK"
+}
+
+
 FUNC_SETUP_PM2(){
     echo -e
     echo -e "${GREEN}#########################################################################${NC}"
@@ -183,7 +202,7 @@ FUNC_SETUP_PM2(){
     # sleep 2s
 
     # The evernode monitor requires sudo access to run
-    pm2 start $MONITOR_DIR/index.js --name evernode-monitor -o $HOME_DIR/.pm2/logs/evernode-monitor-out.log -e $HOME_DIR/.pm2/logs/evernode-monitor-error.log 
+    pm2 start $MONITOR_DIR/index.js --name evernode-monitor
     sleep 2s
     pm2 list
     sleep 2s
@@ -199,8 +218,8 @@ FUNC_LOGROTATE(){
     echo -e "${GREEN}## ${YELLOW}Setup: Logrotate process... ${NC}"
     echo -e
 
-    TMP_FILE04=$(mktemp)
-    cat <<EOF > $TMP_FILE04
+    TMP_FILE05=$(mktemp)
+    cat <<EOF > $TMP_FILE05
 $HOME/.pm2/logs/*.log
     {
         su $USER_ID $USER_ID
@@ -217,7 +236,7 @@ $HOME/.pm2/logs/*.log
         endscript
     }
 EOF
-    sudo sh -c "cat $TMP_FILE04 > /etc/logrotate.d/evernode-monitor-logs"
+    sudo sh -c "cat $TMP_FILE05 > /etc/logrotate.d/evernode-monitor-logs"
     echo -e "OK"
 }
     
@@ -239,6 +258,7 @@ FUNC_MONITOR_DEPLOY(){
     FUNC_PKG_CHECK
     FUNC_INSTALL_SERVICE
     FUNC_FIREWALL_CONFIG
+    FUNC_CREATE_ENV
     FUNC_SETUP_PM2
     FUNC_LOGROTATE
     FUNC_EXIT

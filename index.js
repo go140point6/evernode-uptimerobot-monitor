@@ -1,11 +1,10 @@
 require('dotenv').config();
 require('log-timestamp');
 const cron = require('node-cron');
-const { checkSudo } = require('./utils/checkSudo');
-//const { checkStatus } = require('./main/checkStatus');
+//const { checkSudo } = require('./utils/checkSudo');
 const { checkGas } = require('./main/checkGas.js');
 const { toggleAlert } = require('./main/toggleAlert');
-const { checkStatus } = require('./main/checkLedgerStatus');
+const { checkStatus } = require('./main/checkStatus');
 const { getAddress } = require('./main/getAddress');
 
 // sudo -u sashireputationd XDG_RUNTIME_DIR=/run/user/1030 systemctl --user is-active sashimono-reputationd
@@ -30,25 +29,9 @@ const { getAddress } = require('./main/getAddress');
             const data = await checkStatus(address)
             //console.log(data)
 
-            if (data.lastHeartbeatOk && data.leaseAmountOk && !gas) { // if lastHeartbeatOk (true) AND leaseAmountOk (true) AND gas is not crtical (false)
+            if (data.activeOk && data.leaseAmountOk && data.maxInstancesOk && data.hostReputationOk && !gas) {
                 const res = await toggleAlert(true) // tell toggleAlert we should be green :)
-            } else { // if gas is critical (true) OR either of the other two are not OK (false)
-                console.log("Alert generated or continued, see below for reason:")
-                if (data.lastHeartbeatOk) {
-                    console.log("Heartbeat is OK.")
-                } else {
-                    console.log("No heartbeat transaction found since the previous moment began.")
-                }
-                if (data.leaseAmountOk) {
-                    console.log("Current lease amount is OK.")
-                } else {
-                    console.log("Your LEASE_CRIT value was hit, meaning it's time to lower your instance lease values.")
-                }
-                if (!gas) {
-                    console.log("XAH level is OK.")
-                } else {
-                    console.log("Your GAS_CRIT value was hit, meaning it's time to top up.")
-                }
+            } else {
                 const res = await toggleAlert(false) // tell toggleAlert we should be red :(
             }
         })

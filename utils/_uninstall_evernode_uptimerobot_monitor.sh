@@ -6,6 +6,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Get the absolute path of the script directory
+MONITOR_DIR=$HOME/evernode-uptimerobot-monitor
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 source $SCRIPT_DIR/evernode_monitor.vars
 echo $LOGNAME
@@ -83,6 +84,11 @@ if sudo systemctl list-unit-files --type=service | grep -q 'ufw.service'; then
     fi
 else
     echo -e "UFW is not installed. This is ${RED}NOT GOOD${NC} unless you have other protection in place. Skipping UFW removal..."
+fi
+
+# Remove the .env
+if [ -e "$MONITOR_DIR/.env" ]; then
+  rm -rfv $MONITOR_DIR/.env
 fi
 
 # Remove pm2, pm2 config/log files, and startup process
