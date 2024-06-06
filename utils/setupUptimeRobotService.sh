@@ -32,6 +32,7 @@ MONITOR_DIR=$HOME/evernode-uptimerobot-monitor
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 source $SCRIPT_DIR/evernode_monitor.vars
 
+
 FUNC_VERIFY() {
     CHECK_PASSWD=false
     while true; do
@@ -52,6 +53,7 @@ FUNC_VERIFY() {
         esac
     done
 }
+
 
 FUNC_PKG_CHECK() {
     echo
@@ -177,15 +179,15 @@ FUNC_SETUP_PM2(){
     echo -e
 
     # This configures the regular user if not using root
-    pm2 list
-    sleep 2s
+    # pm2 list
+    # sleep 2s
 
     # The evernode monitor requires sudo access to run
-    sudo pm2 start $MONITOR_DIR/index.js --name evernode-monitor -o $HOME_DIR/.pm2/logs/evernode-monitor-out.log -e $HOME_DIR/.pm2/logs/evernode-monitor-error.log 
+    pm2 start $MONITOR_DIR/index.js --name evernode-monitor -o $HOME_DIR/.pm2/logs/evernode-monitor-out.log -e $HOME_DIR/.pm2/logs/evernode-monitor-error.log 
     sleep 2s
-    sudo pm2 list
+    pm2 list
     sleep 2s
-    sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $LOGNAME --hp $HOME_DIR
+    env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $LOGNAME --hp $HOME_DIR
     pm2 save
 }
 
@@ -234,11 +236,11 @@ FUNC_MONITOR_DEPLOY(){
     sleep 2s
 
     FUNC_VERIFY
-    #FUNC_PKG_CHECK
+    FUNC_PKG_CHECK
     FUNC_INSTALL_SERVICE
     FUNC_FIREWALL_CONFIG
     FUNC_SETUP_PM2
-    #FUNC_LOGROTATE
+    FUNC_LOGROTATE
     FUNC_EXIT
 }
 
@@ -266,6 +268,9 @@ FUNC_EXIT(){
     echo -e
     echo -e "${GREEN}       **${NC} Evernode UptimeRobot Monitor installed ${GREEN}**${NC}"
     echo -e
+    echo -e                     "pm2 status : check status and find id"
+    echo -e                     "pm2 log <id> : standard install this is id 0 - tail log"
+    echo -e                    
     echo -e "${GREEN}#########################################################################${NC}"
     echo -e "${GREEN}#########################################################################${NC}"
     echo -e

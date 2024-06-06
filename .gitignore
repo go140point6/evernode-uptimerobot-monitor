@@ -128,3 +128,6 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+utils/uptimeRobotService.py
+utils/uptimeRobot.service
+archive/

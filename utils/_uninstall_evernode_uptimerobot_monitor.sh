@@ -85,14 +85,14 @@ else
     echo -e "UFW is not installed. This is ${RED}NOT GOOD${NC} unless you have other protection in place. Skipping UFW removal..."
 fi
 
-# Remove pm2 and startup process
+# Remove pm2, pm2 config/log files, and startup process
 echo -e "Removing pm2 and startup process..."
 sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 unstartup systemd -u $LOGNAME --hp $HOME
 sudo npm remove -g pm2
-if 
+sudo rm -rfv $HOME/.pm2
 
 # Remove logrotate files
-sudo rm -rvf /etc/logrotate.d/evernode-monitor-logs
+sudo rm -rfv /etc/logrotate.d/evernode-monitor-logs
 
 echo -e
 echo -e "${GREEN}#########################################################################${NC}"
@@ -103,4 +103,4 @@ echo -e
 echo -e "${GREEN}#########################################################################${NC}"
 echo -e "${GREEN}#########################################################################${NC}"
 echo -e
-
+exit 0
