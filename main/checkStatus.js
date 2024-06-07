@@ -64,7 +64,7 @@ async function checkCurrentValues(address) {
                 console.log(`[OK] currentLeaseRatio of ${currentLeaseRatio.toFixed(2)} is less than critLeaseRatio of ${critLeaseRatio}. This is GOOD.`)
                 data.leaseAmountOk = true
             } else {
-                console.log(`[WARNING] currentLeaseRatio of ${currentLeaseRatio.toFixed(2)} is greater than critLeaseRatio of ${critLeaseRatio}. Suggest you lower your leaseAmount per instance to ensure continued rewards.`)
+                console.log(`[WARN] currentLeaseRatio of ${currentLeaseRatio.toFixed(2)} is greater than critLeaseRatio of ${critLeaseRatio}. Suggest you lower your leaseAmount per instance to ensure continued rewards.`)
             }
         } else {
             console.log(`[ERROR] leaseAmount of ${leaseAmount} is greater than current hostMaxLeaseAmt of ${hostMaxLeaseAmt.toFixed(6)} with a ratio of ${currentLeaseRatio.toFixed(2)}. No rewards for you.`)

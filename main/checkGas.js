@@ -23,9 +23,10 @@ async function checkGas(address) {
         await client.disconnect()
         
         if (xahBalanceXah < process.env.GAS_CRIT) {
-            console.log("Gas is critical, add XAH to ", address)
+            console.log("[WARN] Gas is critical, add XAH to ", address)
             return(true)
         } else {
+            console.log("[OK] XAH balance is above critical threshold.")
             return(false)
         }
 
