@@ -206,7 +206,7 @@ FUNC_SETUP_PM2(){
     sleep 2s
     pm2 list
     sleep 2s
-    env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $LOGNAME --hp $HOME_DIR
+    sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $LOGNAME --hp $HOME_DIR
     pm2 save
 }
 
@@ -241,6 +241,35 @@ EOF
 }
     
 
+FUNC_NOPASSWD_SUDO(){
+    echo -e
+    echo -e "${GREEN}#########################################################################${NC}"
+    echo -e
+    echo -e "${GREEN}## ${YELLOW}Setup: Give current user the ability to sudo /usr/bin/systemctl${NC}"
+    echo -e "${GREEN}## ${YELLOW}without needing to provide the sudo password${NC}"
+    echo -e
+
+    SUDOERS_LINE="$LOGNAME ALL=(ALL:ALL) NOPASSWD:/usr/bin/systemctl"
+    TMP_FILE06=$(mktemp)
+    sudo cp /etc/sudoers $TMP_FILE06
+
+    # Check if the line already exists to prevent duplicate entries
+    if ! sudo grep -Fxq "$SUDOERS_LINE" $TMP_FILE06; then
+    # Add the new line to the end of the temporary sudoers file
+        sudo sed -i "\$a $SUDOERS_LINE" $TMP_FILE06
+    
+        if sudo visudo -c -f $TMP_FILE06; then
+            sudo cp $TMP_FILE06 /etc/sudoers
+            echo -e "User added to sudoers."
+        else
+            echo -e "Error: visudo check failed. Changes not applied."
+        fi
+    else
+        echo -e "The line already exists in the sudoers file."
+    fi
+}
+
+
 FUNC_MONITOR_DEPLOY(){
     
     echo -e "${GREEN}###############################################################################${NC}"
@@ -261,6 +290,7 @@ FUNC_MONITOR_DEPLOY(){
     FUNC_CREATE_ENV
     FUNC_SETUP_PM2
     FUNC_LOGROTATE
+    FUNC_NOPASSWD_SUDO
     FUNC_EXIT
 }
 

@@ -9,7 +9,6 @@ NC='\033[0m' # No Color
 MONITOR_DIR=$HOME/evernode-uptimerobot-monitor
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 source $SCRIPT_DIR/evernode_monitor.vars
-echo $LOGNAME
 
 echo -e "${RED}#########################################################################"
 echo -e "${RED}#########################################################################"
@@ -99,6 +98,19 @@ sudo rm -rfv $HOME/.pm2
 
 # Remove logrotate files
 sudo rm -rfv /etc/logrotate.d/evernode-monitor-logs
+
+# Remove user from sudoers
+TMP_FILE07=$(mktemp)
+SUDOERS_LINE="$LOGNAME ALL=(ALL:ALL) NOPASSWD:/usr/bin/systemctl"
+sudo cp /etc/sudoers $TMP_FILE07
+sudo sed -i "\|$SUDOERS_LINE|d" $TMP_FILE07
+if sudo visudo -c -f $TMP_FILE07; then
+  sudo cp $TMP_FILE07 /etc/sudoers
+  echo -e "User removed from sudoers."
+else
+  echo -e "Error: visudo check failed. Changes not applied."
+fi
+
 
 echo -e
 echo -e "${GREEN}#########################################################################${NC}"
