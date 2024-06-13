@@ -199,6 +199,12 @@ NODE_VERSION=$(node -v | sed 's/v//')
     fi
 fi
 
+# Clean up any left over npm junk
+if [ -e "/usr/lib/node_modules" ]; then
+    echo -e
+    sudo rm -rfv /usr/lib/node_modules
+fi
+
 # Remove logrotate files
 if [ -e "/etc/logrotate.d/evernode-monitor-logs" ]; then
     echo -e
@@ -215,6 +221,12 @@ if sudo visudo -c -f $TMP_FILE07; then
   echo -e "User removed from sudoers."
 else
   echo -e "Error: visudo check failed. Changes not applied."
+fi
+
+# Remove log files
+if [ -e "$MONITOR_DIR/logs" ]; then
+    echo -e
+    rm -rfv "$MONITOR_DIR/logs"
 fi
 
 echo -e

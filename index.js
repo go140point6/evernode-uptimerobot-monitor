@@ -10,6 +10,10 @@ const { createMainArray, createSupportArrays } = require('./shared/createArrays'
 const sharedArrays = require('./shared/sharedArrays');
 const { cleanUpWorkingDirectory } = require('./shared/cleanupFiles');
 
+// Check for no longer using primary xahaud?
+// fix oddity in net-tools install
+// Some way to automate myNodes.csv and currentValues.csv files?
+
 const logOptions = {
 	language: "en", // en / it / pl / es / pt / de / ru / fr
 	colors: true,
