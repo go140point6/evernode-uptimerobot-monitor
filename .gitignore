@@ -131,3 +131,7 @@ dist
 utils/uptimeRobotService.py
 utils/uptimeRobot.service
 archive/
+service-files/
+service-units/
+data/myNodes.csv
+data/currentValues.csv

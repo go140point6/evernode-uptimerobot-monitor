@@ -1,0 +1,4 @@
+address,host,nick,port,gas,activeOk,leaseAmountOk,leaseAmountRatioOk,maxInstancesOk,hostReputationOk
+rjRe2VQoXvpijvutQQky4n2XukzpADEkP9,evr-node01.EXAMPLE.com,evr-node01,24001,false,false,false,false,false,false
+rvuktpEvRVkey4pnzDQk9uXiP22QjjAQXo,evr-node02.EXAMPLE.com,evr-node02,24002,false,false,false,false,false,false
+ruXXQtjo4yPpk9uR2eVkkvQEnpz2vDjQAi,evr-node03.EXAMPLE.com,evr-node03,24003,false,false,false,false,false,false

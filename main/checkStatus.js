@@ -1,14 +1,7 @@
 const fs = require('fs').promises;
 const evernode = require("evernode-js-client");
 
-data = {
-    activeOk: false,
-    leaseAmountOk: false,
-    maxInstancesOk: false,
-    hostReputationOk: false
-}
-
-async function checkCurrentValues(address) {
+async function checkStatus(sharedArrays) {
     try {
         await evernode.Defaults.useNetwork('mainnet')
         const xrplApi = new evernode.XrplApi(null, { autoReconnect: true })
@@ -25,76 +18,69 @@ async function checkCurrentValues(address) {
 
         //console.log(heartbeatClient)
 
+        // default required values from hook
         const hostMinInstanceCount = heartbeatClient.config.rewardConfiguration.hostMinInstanceCount // number
+        sharedArrays.support.hookRequiredValues[0].hostMinInstanceCount = hostMinInstanceCount
         const hostMaxLeaseAmtString = heartbeatClient.config.rewardInfo.hostMaxLeaseAmount // string
-        const hostMaxLeaseAmt = parseFloat(hostMaxLeaseAmtString) // number
+        const hostMaxLeaseAmount = parseFloat(hostMaxLeaseAmtString) // number
+        sharedArrays.support.hookRequiredValues[0].hostMaxLeaseAmount = hostMaxLeaseAmount
         const hostReputationThreshold = heartbeatClient.config.rewardConfiguration.hostReputationThreshold // number
+        sharedArrays.support.hookRequiredValues[0].hostReputationThreshold = hostReputationThreshold
 
-        const res = await heartbeatClient.getHostInfo(address)
+        for (let i = 0; i < sharedArrays.support.myNodes.length; i++) {
+            const address = sharedArrays.support.myNodes[i].address
+            
+            const res = await heartbeatClient.getHostInfo(address)
 
-        //console.log(res)
+            const lastHeartbeatIndex = res.lastHeartbeatIndex // number
+            sharedArrays.support.currentValues[i].lastHeartbeatIndex = lastHeartbeatIndex
+            const version = res.version // string
+            sharedArrays.support.currentValues[i].version = version
+            const hostReputation = res.hostReputation // number
+            sharedArrays.support.currentValues[i].hostReputation = hostReputation
+            const maxInstances = res.maxInstances // number
+            sharedArrays.support.currentValues[i].maxInstances = maxInstances
+            const leaseAmountString = res.leaseAmount // string
+            const leaseAmount = parseFloat(leaseAmountString) // number
+            sharedArrays.support.currentValues[i].leaseAmount = leaseAmount
+            const active = res.active // boolean
+            sharedArrays.support.currentValues[i].active = active
 
-        const lastHeartbeatIndex = res.lastHeartbeatIndex // number
-        const version = res.version // string
-        const hostReputation = res.hostReputation // number
-        const maxInstances = res.maxInstances // numnber
-        const leaseAmountString = res.leaseAmount // string
-        const leaseAmount = parseFloat(leaseAmountString) // number
-        const active = res.active // boolean
+            let currentLeaseRatio = (leaseAmount / hostMaxLeaseAmount) // number
+            let critLeaseRatioString = process.env.LEASE_CRIT // string
+            let critLeaseRatio = parseFloat(critLeaseRatioString) // number
+
+            // Host active or inactive?
+            if (active) {
+                sharedArrays.support.myNodes[i].activeOk = true
+            }
+
+            // Instance lease amount to much?
+            if (leaseAmount < hostMaxLeaseAmount) {
+                sharedArrays.support.myNodes[i].leaseAmountOk = true
+                if (currentLeaseRatio < critLeaseRatio) {
+                    sharedArrays.support.myNodes[i].leaseAmountRatioOk = true
+                }
+            }
+
+            // Instance count less than required?
+            if (maxInstances >= hostMinInstanceCount) {
+                sharedArrays.support.myNodes[i].maxInstancesOk = true
+            }
+
+            // Reputation less than required?
+            if (hostReputation >= hostReputationThreshold) {
+                sharedArrays.support.myNodes[i].hostReputationOk = true
+            }
+        }
 
         await heartbeatClient.disconnect()
         await xrplApi.disconnect()
+        return
 
-        let currentLeaseRatio = (leaseAmount / hostMaxLeaseAmt) // number
-        let critLeaseRatioString = process.env.LEASE_CRIT // string
-        let critLeaseRatio = parseFloat(critLeaseRatioString) // number
-
-        // Host active or inactive?
-        if (active) {
-            console.log("[OK] Heartbeat hook reports host is active.")
-            data.activeOk = true
-        } else {
-            console.log("[ERROR] Heartbeat hook reports host is inactive. No rewards for you.")
-        }
-
-        // Instance lease ammount to much?
-        if (leaseAmount < hostMaxLeaseAmt) {
-            console.log(`[OK] leaseAmount of ${leaseAmount} is less than current hostMaxLeaseAmt of ${hostMaxLeaseAmt.toFixed(6)} with a ratio of ${currentLeaseRatio.toFixed(2)}. Now checking critLeaseRatio trigger...`)
-            if (currentLeaseRatio < critLeaseRatio) {
-                console.log(`[OK] currentLeaseRatio of ${currentLeaseRatio.toFixed(2)} is less than critLeaseRatio of ${critLeaseRatio}. This is GOOD.`)
-                data.leaseAmountOk = true
-            } else {
-                console.log(`[WARN] currentLeaseRatio of ${currentLeaseRatio.toFixed(2)} is greater than critLeaseRatio of ${critLeaseRatio}. Suggest you lower your leaseAmount per instance to ensure continued rewards.`)
-            }
-        } else {
-            console.log(`[ERROR] leaseAmount of ${leaseAmount} is greater than current hostMaxLeaseAmt of ${hostMaxLeaseAmt.toFixed(6)} with a ratio of ${currentLeaseRatio.toFixed(2)}. No rewards for you.`)
-        }
-
-        // Instance count less than required?
-        if (maxInstances >= hostMinInstanceCount) {
-            console.log(`[OK] Current instances of ${maxInstances} is greater than or equal to the current hostMinInstanceCount of ${hostMinInstanceCount}.`)
-            data.maxInstancesOk = true
-        } else {
-            console.log(`[ERROR] Current instances of ${maxInstances} is less than the current hostMinInstanceCount of ${hostMinInstanceCount}. No rewards for you.`)
-        }
-
-        // Reputation less than required?
-        if (hostReputation >= hostReputationThreshold) {
-            console.log(`[OK] Current hostReputation of ${hostReputation} is greater than or equal to the current hostReputationThreshold of ${hostReputationThreshold}.`)
-            data.hostReputationOk = true
-        } else {
-            console.log(`[ERROR] Current hostReputation of ${hostReputation} is less than the current hostReputationThreshold of ${hostReputationThreshold}. No rewards for you.`)
-        }
-        
     } catch (err) {
         console.error('Error in checkCurrentValues:', err)
     }
-}
-
-async function checkStatus(address) {
-    //console.log(address)
-    await checkCurrentValues(address)
-    return(data)
 }
 
 module.exports = {

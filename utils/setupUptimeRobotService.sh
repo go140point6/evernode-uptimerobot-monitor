@@ -11,8 +11,25 @@ BYELLOW='\033[1;33m'
 BLUE='\033[0;94m'
 NC='\033[0m' # No Color
 
-# Get current user id and store as var
-USER_ID=$(getent passwd $EUID | cut -d: -f1)
+# Find out who is running this script
+if [ "$(id -u)" -ne 0 ]; then
+    # Regular user without invoking sudo
+    ORIG_USER=$(getent passwd "$(id -u)" | cut -d: -f1)
+    ORIG_HOME=$(getent passwd "$(id -u)" | cut -d: -f6)
+else
+    if [ -n "$SUDO_USER" ]; then
+        # Regular user with sudo
+        ORIG_USER=$(getent passwd "$SUDO_USER" | cut -d: -f1)
+        ORIG_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+    else
+        # Root user without sudo
+        ORIG_USER=$(getent passwd "$(id -u)" | cut -d: -f1)
+        ORIG_HOME=$(getent passwd "$(id -u)" | cut -d: -f6)
+    fi
+fi
+
+echo -e "$ORIG_USER"
+echo -e "$ORIG_HOME"
 
 # Authenticate sudo perms before script execution to avoid timeouts or errors.
 # Extend sudo timeout to 20 minutes, instead of default 5 minutes.
@@ -21,10 +38,9 @@ if sudo -l > /dev/null 2>&1; then
     TMP_FILENAME01=$(basename $TMP_FILE01)
     echo "Defaults:$USER_ID timestamp_timeout=20" > $TMP_FILE01
     sudo sh -c "cat $TMP_FILE01 > /etc/sudoers.d/$TMP_FILENAME01"
-    HOME_DIR=$HOME
 else
     echo "The user $USER_ID doesn't appear to have sudo privledges, add to sudoers or run as root."
-    FUNC_EXIT_ERROR;
+    FUNC_EXIT_ERROR
 fi
 
 # Get the absolute path of the directories
@@ -92,23 +108,47 @@ FUNC_INSTALL_SERVICE() {
     echo -e "${GREEN}## ${YELLOW}Step 1. Create service... ${NC}"
     echo -e
 
-    TMP_FILE02=$(mktemp)
+    MY_NODES=$MONITOR_DIR/data/myNodes.csv
+    echo >> "$MY_NODES"
+
+    # Directory to store the service and unit files
+    UR_SERVICE_DIR="$SCRIPT_DIR/service-files"
+    UR_SERVICE_UNIT_DIR="$SCRIPT_DIR/service-units"
+
+    # Create the directories if they don't exist
+    mkdir -p "$UR_SERVICE_DIR"
+    mkdir -p "$UR_SERVICE_UNIT_DIR"
+
     URSERVICE_PY_TEMPLATE=$SCRIPT_DIR/uptimeRobotService.py.template
+    URSERVICE_UNIT_TEMPLATE=$SCRIPT_DIR/uptimeRobotService.unit.template
 
-    # Read the template file, replace the placeholder with the actual port, and write to the temp file
-    sudo sed "s|{{PORT}}|$CUSTOM_UR_PORT|" $URSERVICE_PY_TEMPLATE > $TMP_FILE02
+    # Read the CSV file line by line, skipping header and empty lines
+    {
+        read # skip header
+        while IFS=, read -r address host nick port gas activeOk leaseAmountOk leaseAmountRatioOk maxInstancesOk hostReputationOk; do
+            if [[ -n $address && -n $host && -n $nick && -n $port && -n $gas && -n $activeOk && -n $leaseAmountOk && -n $leaseAmountRatioOk && -n $maxInstancesOk && -n $hostReputationOk ]]; then
+                UPTIME_ROBOT_SERVICE_FILE="$UR_SERVICE_DIR/uptimeRobotService-$port.py"
+                UPTIME_ROBOT_SERVICE_UNIT_FILE="$UR_SERVICE_UNIT_DIR/uptimeRobot-$port.service"
+                sudo sed "s|{{PORT}}|$port|" "$URSERVICE_PY_TEMPLATE" > "$UPTIME_ROBOT_SERVICE_FILE"
+                sudo sed -e "s|{{DIR}}|$UR_SERVICE_UNIT_DIR|" -e "s|{{PORT}}|$port|" $URSERVICE_UNIT_TEMPLATE > $UPTIME_ROBOT_SERVICE_UNIT_FILE
+                chmod 755 "$UPTIME_ROBOT_SERVICE_FILE"
+                sudo ln -sfn $UPTIME_ROBOT_SERVICE_UNIT_FILE /etc/systemd/system/uptimeRobot-$port.service
+            fi
+        done
+    } < "$MY_NODES"
 
-    # Move the temp file to the desired location
-    sh -c "cat $TMP_FILE02 > $SCRIPT_DIR/uptimeRobotService.py"
-    chmod 755 $SCRIPT_DIR/uptimeRobotService.py
-    echo -e "OK"
+    # Debugging: Print number of service files created
+    NUM_FILES_CREATED=$(find "$UR_SERVICE_DIR" -type f | wc -l)
+    echo -e "Number of service files created: $NUM_FILES_CREATED"
     sleep 2s
+
+    FUNC_EXIT
 
     echo -e "${GREEN}## ${YELLOW}Step 2. Create service unit file... ${NC}"
     echo -e
 
     TMP_FILE03=$(mktemp)
-    URSERVICE_UNIT_TEMPLATE=$SCRIPT_DIR/uptimeRobotService.unit.template
+    
 
     # Read the template file, replace the placeholder with the script dir, and write to the temp file
     sudo sed "s|{{DIR}}|$SCRIPT_DIR|" $URSERVICE_UNIT_TEMPLATE > $TMP_FILE03
@@ -284,13 +324,13 @@ FUNC_MONITOR_DEPLOY(){
     sleep 2s
 
     FUNC_VERIFY
-    FUNC_PKG_CHECK
+    #FUNC_PKG_CHECK
     FUNC_INSTALL_SERVICE
-    FUNC_FIREWALL_CONFIG
-    FUNC_CREATE_ENV
-    FUNC_SETUP_PM2
-    FUNC_LOGROTATE
-    FUNC_NOPASSWD_SUDO
+    #FUNC_FIREWALL_CONFIG
+    #FUNC_CREATE_ENV
+    #FUNC_SETUP_PM2
+    #FUNC_LOGROTATE
+    #FUNC_NOPASSWD_SUDO
     FUNC_EXIT
 }
 

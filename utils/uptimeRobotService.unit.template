@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 {{DIR}}/uptimeRobotService.py
+ExecStart=/usr/bin/python3 {{DIR}}/uptimeRobotService-{{PORT}}.py
 Restart=always
 
 [Install]

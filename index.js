@@ -1,41 +1,59 @@
 require('dotenv').config();
-require('log-timestamp');
+const path = require('path');
+const Logger = require("@ptkdev/logger")
 const cron = require('node-cron');
-//const { checkSudo } = require('./utils/checkSudo');
-const { checkGas } = require('./main/checkGas.js');
+const { createDirectoryIfNotExists } = require('./utils/createDirectory');
+const { checkGas } = require('./main/checkGas');
 const { toggleAlert } = require('./main/toggleAlert');
 const { checkStatus } = require('./main/checkStatus');
-const { getAddress } = require('./main/getAddress');
+const { createMainArray, createSupportArrays } = require('./utils/createArrays');
+const sharedArrays = require('./shared/sharedArrays');
+const { cleanUpWorkingDirectory } = require('./utils/cleanupFiles');
 
-// sudo -u sashireputationd XDG_RUNTIME_DIR=/run/user/1030 systemctl --user is-active sashimono-reputationd
-// sudo -u sashimbxrpl XDG_RUNTIME_DIR=/run/user/1029 systemctl --user is-active sashimono-mb-xrpl
-// No need to run as sudo any more?
+const logOptions = {
+	language: "en", // en / it / pl / es / pt / de / ru / fr
+	colors: true,
+	debug: true,
+	info: true,
+	warning: true,
+	error: true,
+	sponsor: false,
+	write: true,
+	type: "log",
+	rotate: {
+		size: "10M",
+		encoding: "utf8",
+	},
+	path: {
+		debug_log: "./logs/evernode-uptimerobot-monitor.log",
+        error_log: "./logs/working/error.log",
+        warning_log: "./logs/working/warning.log",
+	},
+};
 
 (async () => {
     try {
-        //const sudoOk = await checkSudo()
-        //console.log(sudoOk)
+        const rootPath = process.cwd();
+        const folderPath = path.join(rootPath, 'logs');
+        await createDirectoryIfNotExists(folderPath);
+        const logger = new Logger(logOptions);
+        const main = await createMainArray()
+        sharedArrays.support = await createSupportArrays()
+
         if (process.env.LEASE_CRIT > 1) {
             console.log("Check .env, the LEASE_CRIT ratio must be 1 or less. Aborting.")
             process.exit(1); // Exit the current process
         }
-        const address = await getAddress()
-        console.log("Host address to monitor is: ", address)
 
-        const monitorNode = cron.schedule(process.env.CRON_SCHED, async () => {
-            console.log("")
-            const gas = await checkGas(address)
-            //console.log("Gas crtical:", gas) // boolean
-            const data = await checkStatus(address)
-            //console.log(data)
+        //const monitorNode = cron.schedule(process.env.CRON_SCHED, async () => {
+            await checkGas(sharedArrays)
+            await checkStatus(sharedArrays)
+            await toggleAlert(sharedArrays, logger)
+            const workingDir = `${folderPath}/working`
+            await cleanUpWorkingDirectory(workingDir)
+        //}
 
-            if (data.activeOk && data.leaseAmountOk && data.maxInstancesOk && data.hostReputationOk && !gas) {
-                const res = await toggleAlert(true) // tell toggleAlert we should be green :)
-            } else {
-                const res = await toggleAlert(false) // tell toggleAlert we should be red :(
-            }
-        })
-    } catch(error) {
+    } catch (error) {
         console.error("Some error: ", error)
     }
 })();
