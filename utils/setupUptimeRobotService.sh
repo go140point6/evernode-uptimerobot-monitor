@@ -102,10 +102,7 @@ FUNC_INSTALL_SERVICE() {
     echo -e
     echo -e "${GREEN}#########################################################################${NC}"
     echo -e
-    echo -e "${GREEN}## ${YELLOW}Install uptimeRobot.service... ${NC}"
-    echo -e
-
-    echo -e "${GREEN}## ${YELLOW}Step 1. Create service... ${NC}"
+    echo -e "${GREEN}## ${YELLOW}Install uptimeRobot.service for each node... ${NC}"
     echo -e
 
     MY_NODES=$MONITOR_DIR/data/myNodes.csv
@@ -130,42 +127,23 @@ FUNC_INSTALL_SERVICE() {
                 UPTIME_ROBOT_SERVICE_FILE="$UR_SERVICE_DIR/uptimeRobotService-$port.py"
                 UPTIME_ROBOT_SERVICE_UNIT_FILE="$UR_SERVICE_UNIT_DIR/uptimeRobot-$port.service"
                 sudo sed "s|{{PORT}}|$port|" "$URSERVICE_PY_TEMPLATE" > "$UPTIME_ROBOT_SERVICE_FILE"
-                sudo sed -e "s|{{DIR}}|$UR_SERVICE_UNIT_DIR|" -e "s|{{PORT}}|$port|" $URSERVICE_UNIT_TEMPLATE > $UPTIME_ROBOT_SERVICE_UNIT_FILE
+                sudo sed -e "s|{{DIR}}|$UR_SERVICE_DIR|" -e "s|{{PORT}}|$port|" $URSERVICE_UNIT_TEMPLATE > $UPTIME_ROBOT_SERVICE_UNIT_FILE
                 chmod 755 "$UPTIME_ROBOT_SERVICE_FILE"
                 sudo ln -sfn $UPTIME_ROBOT_SERVICE_UNIT_FILE /etc/systemd/system/uptimeRobot-$port.service
+                sudo systemctl enable uptimeRobot-$port.service
+                sudo systemctl start uptimeRobot-$port.service
+                sudo systemctl status uptimeRobot-$port.service
+                sleep 1s
             fi
         done
     } < "$MY_NODES"
 
     # Debugging: Print number of service files created
     NUM_FILES_CREATED=$(find "$UR_SERVICE_DIR" -type f | wc -l)
+    NUM_UNITS_CREATED=$(find "$UR_SERVICE_UNIT_DIR" -type f | wc -l)
     echo -e "Number of service files created: $NUM_FILES_CREATED"
-    sleep 2s
-
-    FUNC_EXIT
-
-    echo -e "${GREEN}## ${YELLOW}Step 2. Create service unit file... ${NC}"
-    echo -e
-
-    TMP_FILE03=$(mktemp)
-    
-
-    # Read the template file, replace the placeholder with the script dir, and write to the temp file
-    sudo sed "s|{{DIR}}|$SCRIPT_DIR|" $URSERVICE_UNIT_TEMPLATE > $TMP_FILE03
-
-    # Move the temp file to the desired location
-    sh -c "cat $TMP_FILE03 > $SCRIPT_DIR/uptimeRobot.service"
-    sudo ln -sfn $SCRIPT_DIR/uptimeRobot.service /etc/systemd/system/uptimeRobot.service
-    echo -e "OK"
-    sleep 3s
-
-    echo -e "${GREEN}## ${YELLOW}Step 3. Enable and start service... ${NC}"
-    echo -e
-
-    sudo systemctl enable uptimeRobot.service
-    sudo systemctl start uptimeRobot.service
+    echo -e "Number of service-unit files created: $NUM_UNITS_CREATED"
     sudo systemctl daemon-reload
-    sudo systemctl status uptimeRobot.service
     sleep 2s
 }
 
@@ -184,10 +162,25 @@ FUNC_FIREWALL_CONFIG(){
         if sudo systemctl is-active --quiet ufw.service; then
             echo -e "UFW is installed and running. This is ${GREEN}GOOD${NC}. Proceeding with UFW configuration..."
             echo -e
-            echo -e "${GREEN}## ${YELLOW}Step 2. Add monitoring port $CUSTOM_UR_PORT... ${NC}"
+            echo -e "${GREEN}## ${YELLOW}Step 2. Add monitoring ports... ${NC}"
             echo -e
-            sudo ufw allow $CUSTOM_UR_PORT/tcp
+
+            # Loop through each file in the service-units directory
+            for service_file in "$UR_SERVICE_UNIT_DIR"/uptimeRobot-24*.service; do
+            # Extract the port number from the filename
+                port=$(echo "$service_file" | grep -oP '(?<=uptimeRobot-24)\d{3}(?=.service)')
+    
+                if [[ -n $port ]]; then
+                    # Allow the port through the firewall
+                    sudo ufw allow "24$port/tcp"
+                    echo -e "Firewall rule added for port 24$port/tcp"
+                    sleep 1s
+                else
+                    echo -e "No valid port found in $service_file"
+                fi
+            done
             sudo ufw status verbose
+
             echo -e
             echo -e "${GREEN}## ${YELLOW}Step 3. Change UFW logging to [ufw.log only]... ${NC}"
             echo -e
@@ -228,25 +221,47 @@ FUNC_SETUP_PM2(){
     echo -e "${GREEN}## ${YELLOW}Setup: Process Manager (PM2)... ${NC}"
     echo -e
 
-    echo -e "${GREEN}## ${YELLOW}Step 1. Install PM2 globally using NPM... ${NC}"
+    echo -e "${GREEN}## ${YELLOW}Step 1. Install node... ${NC}"
     echo -e
 
-    sudo npm install -g npm
+    # Function to compare version numbers
+    ver() {
+        printf "%03d%03d%03d" $(echo "$1" | tr '.' ' ')
+    }
+
+    if command -v node >/dev/null 2>&1; then
+    NODE_VERSION=$(node -v | sed 's/v//')
+        if [ $(ver "$NODE_VERSION") -ge $(ver "18.0.0") ]; then
+            echo "Node.js is already installed and is v18 or higher, skipping node install..."
+        else
+            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            node -v
+            npm -v
+        fi
+    else
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        node -v
+        npm -v
+    fi
+
+    echo -e "${GREEN}## ${YELLOW}Step 2. Install pm2 and script dependencies... ${NC}"
+    echo -e
+
+    npm install
+    sleep 2s
     sudo npm install -g pm2
 
-    echo -e "${GREEN}## ${YELLOW}Step 2. Start and configure auto-start of monitoring script... ${NC}"
+    echo -e "${GREEN}## ${YELLOW}Step 3. Start and configure auto-start of monitoring script... ${NC}"
     echo -e
-
-    # This configures the regular user if not using root
-    # pm2 list
-    # sleep 2s
 
     # The evernode monitor requires sudo access to run
     pm2 start $MONITOR_DIR/index.js --name evernode-monitor
     sleep 2s
     pm2 list
     sleep 2s
-    sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $LOGNAME --hp $HOME_DIR
+    sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $ORIG_USER --hp $ORIG_HOME
     pm2 save
 }
 
@@ -260,12 +275,12 @@ FUNC_LOGROTATE(){
 
     TMP_FILE05=$(mktemp)
     cat <<EOF > $TMP_FILE05
-$HOME/.pm2/logs/*.log
+$ORIG_HOME/.pm2/logs/*.log
     {
-        su $USER_ID $USER_ID
+        su $ORIG_USER $ORIG_USER
         rotate 10
         copytruncate
-        daily
+        weekly
         missingok
         notifempty
         compress
@@ -289,7 +304,7 @@ FUNC_NOPASSWD_SUDO(){
     echo -e "${GREEN}## ${YELLOW}without needing to provide the sudo password${NC}"
     echo -e
 
-    SUDOERS_LINE="$LOGNAME ALL=(ALL:ALL) NOPASSWD:/usr/bin/systemctl"
+    SUDOERS_LINE="$ORIG_USER ALL=(ALL:ALL) NOPASSWD:/usr/bin/systemctl"
     TMP_FILE06=$(mktemp)
     sudo cp /etc/sudoers $TMP_FILE06
 
@@ -300,7 +315,7 @@ FUNC_NOPASSWD_SUDO(){
     
         if sudo visudo -c -f $TMP_FILE06; then
             sudo cp $TMP_FILE06 /etc/sudoers
-            echo -e "User added to sudoers."
+            echo -e "$ORIG_USER added to sudoers."
         else
             echo -e "Error: visudo check failed. Changes not applied."
         fi
@@ -315,22 +330,21 @@ FUNC_MONITOR_DEPLOY(){
     echo -e "${GREEN}###############################################################################${NC}"
     echo -e "${YELLOW}###############################################################################${NC}"
     echo -e "${GREEN}${NC}"
-    echo -e "${GREEN}                 **${NC}Evernode UptimeRobot Monitor Service${GREEN}**${NC}"
+    echo -e "${GREEN}           ** ${NC}Evernode UptimeRobot Monitor Service Setup${GREEN} **${NC}"
     echo -e "${GREEN}${NC}"
-    echo -e "${RED}!!  ACHTUNG  !!${NC} This MUST be installed on your Evernode host ${RED}!!  ATTENTION  !!${NC}"
     echo -e "${YELLOW}###############################################################################${NC}"
     echo -e "${GREEN}###############################################################################${NC}"
     echo -e
     sleep 2s
 
     FUNC_VERIFY
-    #FUNC_PKG_CHECK
+    FUNC_PKG_CHECK
     FUNC_INSTALL_SERVICE
-    #FUNC_FIREWALL_CONFIG
-    #FUNC_CREATE_ENV
-    #FUNC_SETUP_PM2
-    #FUNC_LOGROTATE
-    #FUNC_NOPASSWD_SUDO
+    FUNC_FIREWALL_CONFIG
+    FUNC_CREATE_ENV
+    FUNC_SETUP_PM2
+    FUNC_LOGROTATE
+    FUNC_NOPASSWD_SUDO
     FUNC_EXIT
 }
 

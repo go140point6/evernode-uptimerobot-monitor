@@ -2,13 +2,13 @@ require('dotenv').config();
 const path = require('path');
 const Logger = require("@ptkdev/logger")
 const cron = require('node-cron');
-const { createDirectoryIfNotExists } = require('./utils/createDirectory');
+const { createDirectoryIfNotExists } = require('./shared/createDirectory');
 const { checkGas } = require('./main/checkGas');
 const { toggleAlert } = require('./main/toggleAlert');
 const { checkStatus } = require('./main/checkStatus');
-const { createMainArray, createSupportArrays } = require('./utils/createArrays');
+const { createMainArray, createSupportArrays } = require('./shared/createArrays');
 const sharedArrays = require('./shared/sharedArrays');
-const { cleanUpWorkingDirectory } = require('./utils/cleanupFiles');
+const { cleanUpWorkingDirectory } = require('./shared/cleanupFiles');
 
 const logOptions = {
 	language: "en", // en / it / pl / es / pt / de / ru / fr
@@ -45,14 +45,14 @@ const logOptions = {
             process.exit(1); // Exit the current process
         }
 
-        //const monitorNode = cron.schedule(process.env.CRON_SCHED, async () => {
+        const monitorNode = cron.schedule(process.env.CRON_SCHED, async () => {
             await checkGas(sharedArrays)
             await checkStatus(sharedArrays)
             await toggleAlert(sharedArrays, logger)
             const workingDir = `${folderPath}/working`
             await cleanUpWorkingDirectory(workingDir)
-        //}
-
+        })
+        
     } catch (error) {
         console.error("Some error: ", error)
     }

@@ -1,5 +1,5 @@
 const util = require('util');
-const { sleep } = require('../utils/sleep');
+const { sleep } = require('../shared/sleep');
 const exec = util.promisify(require('child_process').exec);
 
 const isServiceRunning = async (serviceName) => {
