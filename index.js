@@ -1,6 +1,6 @@
 require('dotenv').config();
 const path = require('path');
-const Logger = require("@ptkdev/logger")
+const Logger = require("@ptkdev/logger");
 const cron = require('node-cron');
 const { createDirectoryIfNotExists } = require('./shared/createDirectory');
 const { checkGas } = require('./main/checkGas');
