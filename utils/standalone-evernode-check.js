@@ -22,8 +22,7 @@ function isValidXRPLAddress(address) {
 }
 
 (async () => {
-    //const address = readline.question('Please enter your XRPL address: ')
-    const address = 'rUHtnEdBNqsxRC4zvLvc5FB5MxQC18SU5D'
+    const address = readline.question('Please enter your XRPL address: ')
     const logger = new Logger(logOptions)
 
     if (isValidXRPLAddress(address)) {
