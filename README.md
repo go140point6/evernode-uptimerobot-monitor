@@ -26,6 +26,7 @@ Note: This should be done on one of your evernode hosts since it already has the
 ```sh
 git clone https://github.com/go140point6/evernode-uptimerobot-monitor.git
 cd evernode-uptimerobot-monitor
+npm install
 ```
 - Run the standalone script in utils and provide the address when prompted:
 ```js
