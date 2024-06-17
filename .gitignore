@@ -135,3 +135,5 @@ service-files/
 service-units/
 data/myNodes.csv
 data/currentValues.csv
+data/currentValues-full.csv
+data/myNodes-full.csv

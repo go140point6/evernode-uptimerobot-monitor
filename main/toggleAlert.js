@@ -2,9 +2,10 @@ const util = require('util');
 const { sleep } = require('../shared/sleep');
 const exec = util.promisify(require('child_process').exec);
 
-const isServiceRunning = async (serviceName) => {
+const isServiceRunning = async (servicePort) => {
     return new Promise((resolve) => {
-      exec(`sudo systemctl is-active ${serviceName}.service`, (error) => {
+      exec(`sudo systemctl is-active uptimeRobot-${servicePort}.service`, (error) => {
+        //console.log("isServiceRunningStatus: ", error)
         if (error) { // exec treats anything other than "active" as an error, and 3 is "inactive" which is what we want
           if (error.code === 3) {
             resolve(false)  // Service is inactive
@@ -19,14 +20,14 @@ const isServiceRunning = async (serviceName) => {
     })
 }
 
-const startService = async (serviceName, logger) => {
-  const status = await isServiceRunning(serviceName)
-  logger.info(`${serviceName}: All systems go! Previous alerts, if present, cleared.`)
+const startService = async (servicePort) => {
+  const status = await isServiceRunning(servicePort)
+  //logger.info(`${serviceName}: All systems go! Previous alerts, if present, cleared.`)
   if (status === true) {
     return
   } else if (status === false) {
     try {
-      const { stderr } = await exec(`sudo systemctl start ${serviceName}.service`)
+      const { stderr } = await exec(`sudo systemctl start uptimeRobot-${servicePort}.service`)
       if (stderr) {
         console.error(`Error starting service: ${stderr}`)
       }
@@ -37,14 +38,15 @@ const startService = async (serviceName, logger) => {
   }
 }
 
-const stopService = async (serviceName, logger) => {
-  const status = await isServiceRunning(serviceName)
-  logger.info(`${serviceName} has triggered an alert:`)
+const stopService = async (servicePort) => {
+  const status = await isServiceRunning(servicePort)
+  //logger.info(`${serviceName} has triggered an alert:`)
   if (status === false) {
     return
   } else if (status === true) {
     try {
-      const { stderr } = await exec(`sudo systemctl stop ${serviceName}.service`)
+      const { stderr } = await exec(`sudo systemctl stop uptimeRobot-${servicePort}.service`)
+      logger.error()
       if (stderr) {
         console.error(`Error stopping service: ${stderr}`)
       }
@@ -58,27 +60,44 @@ const stopService = async (serviceName, logger) => {
 async function toggleAlert(sharedArrays, logger) {
   for (let i = 0; i < sharedArrays.support.myNodes.length; i++) {
     let serviceName = sharedArrays.support.myNodes[i].nick
+    let servicePort = sharedArrays.support.myNodes[i].port
     if (sharedArrays.support.myNodes[i].activeOk && sharedArrays.support.myNodes[i].leaseAmountOk && sharedArrays.support.myNodes[i].leaseAmountRatioOk && sharedArrays.support.myNodes[i].maxInstancesOk && sharedArrays.support.myNodes[i].hostReputationOk && !sharedArrays.support.myNodes[i].gas) {
-      //await startService(serviceName, logger)
+      await startService(servicePort)
       if (i === 0) {
         logger.info('START~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')  
       } else if (i > 0 && i <= sharedArrays.support.myNodes.length - 1 ) {
         logger.info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')  
       }
       logger.info('All systems go! Previous alerts, if any, cleared.', serviceName)
+      const status = await isServiceRunning(servicePort)
+      if (status === true) {
+        logger.info(`uptimeRobot-${servicePort}.service in active state.`, serviceName)
+      } else if (status === false) {
+        logger.error(`uptimeRobot-${servicePort}.service did not start for some reason.`, serviceName)
+      } else {
+        logger.error(`uptimeRobot-${servicePort}.service in some other state, investigate.`, serviceName)
+      }
       if (i === sharedArrays.support.myNodes.length - 1) {
         logger.info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~END')
         logger.info('')
       }
       sleep(2000)
     } else {
-      //await stopService(serviceName, logger)
+      await stopService(servicePort)
       if (i === 0) {
         logger.info('START~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')  
       } else if (i > 0 && i <= sharedArrays.support.myNodes.length - 1 ) {
         logger.info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')  
       }
       logger.error('***Alert triggered***', serviceName)
+      const status = await isServiceRunning(servicePort)
+      if (status === false) {
+        logger.info(`uptimeRobot-${servicePort}.service in inactive state.`, serviceName)
+      } else if (status === true) {
+        logger.error(`uptimeRobot-${servicePort}.service did not stop for some reason.`, serviceName)
+      } else {
+        logger.error(`uptimeRobot-${servicePort}.service in some other state, investigate.`, serviceName)
+      }
       sleep(2000)
       await alertMessages(sharedArrays, i, logger)
       if (i === sharedArrays.support.myNodes.length - 1) {
