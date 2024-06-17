@@ -167,9 +167,56 @@ async function alertMessages(sharedArrays, i, logger) {
   } catch (err) {
     logger.debug('Error in alertMessages: ', err)
   }
+}
 
+async function alertMessagesSingle(logger, gas, active, leaseAmount, hostMaxLeaseAmount, maxInstances, hostMinInstanceCount, hostReputation, hostReputationThreshold, version) {
+  try {
+
+    // Gas below critical threshold?
+    
+    if (gas < '5') {
+      logger.info(`XAH balance of ${gas} for account is above critical threshold.`)
+    } else {
+      logger.error(`Gas is critical, add XAH to this account.`)
+    }
+
+    // Host active or inactive?
+    if (active) {
+      logger.info("Heartbeat hook reports host is active.")
+    } else {
+      logger.error("Heartbeat hook reports host is inactive. No rewards for you.")
+    }
+
+    // Instance lease amount to much?
+    if (leaseAmount < hostMaxLeaseAmount) {
+      logger.info(`leaseAmount of ${leaseAmount} is less than current hostMaxLeaseAmt of ${hostMaxLeaseAmount.toFixed(6)}.`)
+    } else {
+      logger.error(`leaseAmount of ${leaseAmount} is greater than current hostMaxLeaseAmt of ${hostMaxLeaseAmount.toFixed(6)}. No rewards for you.`)
+    }
+
+    // Instance count less than required?
+    if (maxInstances >= hostMinInstanceCount) {
+      logger.info(`Current instances of ${maxInstances} is greater than or equal to the current hostMinInstanceCount of ${hostMinInstanceCount}.`)
+    } else {
+      logger.error(`[ERROR] Current instances of ${maxInstances} is less than the current hostMinInstanceCount of ${hostMinInstanceCount}. No rewards for you.`)
+    }
+
+    // Reputation less than required?
+    if (hostReputation >= hostReputationThreshold) {
+      logger.info(`Current hostReputation of ${hostReputation} is greater than or equal to the current hostReputationThreshold of ${hostReputationThreshold}.`)
+    } else {
+      logger.error(`Current hostReputation of ${hostReputation} is less than the current hostReputationThreshold of ${hostReputationThreshold}. No rewards for you.`)
+    }
+
+    // Version?
+    logger.warning(`Check that your version of ${version} is the latest. You may potentially be blocked if not running the latest version.`)
+
+  } catch (err) {
+    logger.debug('Error in alertMessages: ', err)
+  }
 }
 
   module.exports = {
-    toggleAlert
+    toggleAlert,
+    alertMessagesSingle
 }

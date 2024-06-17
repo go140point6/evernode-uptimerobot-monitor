@@ -20,7 +20,20 @@
 - Exploring ways to build the myNodes.csv and currentValues.csv automatically, for now you must create manually.
 - 
 
-#### To Install
+#### To check a single address
+Note: This should be done on one of your evernode hosts since it already has the proper version of Node.js installed. Only clone to one, and then check any number of addresses.
+- Clone the repo and install dependencies:
+```sh
+git clone https://github.com/go140point6/evernode-uptimerobot-monitor.git
+cd evernode-uptimerobot-monitor
+```
+- Run the standalone script in utils and provide the address when prompted:
+```js
+node ./utils/standalone-evernode-check.js
+```
+- OPTIONAL: delete the repo when done if you wish.
+
+#### To Install Full Monitoring
 - Clone the repo and install dependencies
 ```sh
 git clone https://github.com/go140point6/evernode-uptimerobot-monitor.git
