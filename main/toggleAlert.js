@@ -173,11 +173,14 @@ async function alertMessagesSingle(logger, gas, active, leaseAmount, hostMaxLeas
   try {
 
     // Gas below critical threshold?
-    
-    if (gas < '5') {
-      logger.info(`XAH balance of ${gas} for account is above critical threshold.`)
+    let gasNum = parseFloat(gas.trim())
+    let critGas = 5
+    if (isNaN(gasNum)) {
+      logger.error('Gas value is not a number.')
+    } else if (gasNum > critGas) {
+      logger.info(`XAH balance of ${gasNum} for account is above critical threshold.`)
     } else {
-      logger.error(`Gas is critical, add XAH to this account.`)
+      logger.error(`Gas of ${gasNum} is potentially critical, add XAH to this account.`)
     }
 
     // Host active or inactive?

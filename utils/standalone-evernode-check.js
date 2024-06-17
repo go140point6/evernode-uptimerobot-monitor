@@ -22,11 +22,11 @@ function isValidXRPLAddress(address) {
 }
 
 (async () => {
-    const address = readline.question('Please enter your XRPL address: ')
+    const address = readline.question('Please enter your Evernode host address: ')
     const logger = new Logger(logOptions)
 
     if (isValidXRPLAddress(address)) {
-        logger.info(`The XAHL address is valid, checking: ${address}`)
+        logger.info(`The Evernode host address appears valid, checking: ${address}`)
         const gas = await checkGasSingle(address)
         //console.log(gas)
         const { hostMinInstanceCount, hostMaxLeaseAmount, hostReputationThreshold, version, hostReputation, maxInstances, leaseAmount, active } = await checkStatusSingle(address)
