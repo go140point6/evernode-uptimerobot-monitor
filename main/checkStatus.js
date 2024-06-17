@@ -1,49 +1,6 @@
 const fs = require('fs').promises;
 const evernode = require("evernode-js-client");
 
-async function checkStatusSingle(address) {
-    try {
-        await evernode.Defaults.useNetwork('mainnet')
-        const xrplApi = new evernode.XrplApi(null, { autoReconnect: true })
-        evernode.Defaults.set({
-            xrplApi: xrplApi
-        })
-
-        await xrplApi.connect()
-
-        //console.log(xrplApi)
-
-        const heartbeatClient = await evernode.HookClientFactory.create(evernode.HookTypes.heartbeat)
-        await heartbeatClient.connect()
-
-        //console.log(heartbeatClient)
-
-        // default required values from hook
-        const hostMinInstanceCount = heartbeatClient.config.rewardConfiguration.hostMinInstanceCount // number
-        const hostMaxLeaseAmtString = heartbeatClient.config.rewardInfo.hostMaxLeaseAmount // string
-        const hostMaxLeaseAmount = parseFloat(hostMaxLeaseAmtString) // number
-        const hostReputationThreshold = heartbeatClient.config.rewardConfiguration.hostReputationThreshold // number
-
-        const res = await heartbeatClient.getHostInfo(address)
-
-        const version = res.version // string
-        const hostReputation = res.hostReputation // number
-        const maxInstances = res.maxInstances // number
-        const leaseAmountString = res.leaseAmount // string
-        const leaseAmount = parseFloat(leaseAmountString) // number
-        const active = res.active // boolean
-
-        let currentLeaseRatio = (leaseAmount / hostMaxLeaseAmount) // number
-
-        await heartbeatClient.disconnect()
-        await xrplApi.disconnect()
-        return{ hostMinInstanceCount, hostMaxLeaseAmount, hostReputationThreshold, version, hostReputation, maxInstances, leaseAmount, active }
-
-    } catch (err) {
-        console.error('Error in checkCurrentValues:', err)
-    }
-}
-
 async function checkStatus(sharedArrays) {
     try {
         await evernode.Defaults.useNetwork('mainnet')
@@ -127,6 +84,5 @@ async function checkStatus(sharedArrays) {
 }
 
 module.exports = {
-    checkStatus,
-    checkStatusSingle
+    checkStatus
 }

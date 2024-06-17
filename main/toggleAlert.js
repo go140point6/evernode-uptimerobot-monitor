@@ -59,7 +59,7 @@ async function toggleAlert(sharedArrays, logger) {
   for (let i = 0; i < sharedArrays.support.myNodes.length; i++) {
     let serviceName = sharedArrays.support.myNodes[i].nick
     if (sharedArrays.support.myNodes[i].activeOk && sharedArrays.support.myNodes[i].leaseAmountOk && sharedArrays.support.myNodes[i].leaseAmountRatioOk && sharedArrays.support.myNodes[i].maxInstancesOk && sharedArrays.support.myNodes[i].hostReputationOk && !sharedArrays.support.myNodes[i].gas) {
-      await startService(serviceName, logger)
+      //await startService(serviceName, logger)
       if (i === 0) {
         logger.info('START~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')  
       } else if (i > 0 && i <= sharedArrays.support.myNodes.length - 1 ) {
@@ -72,7 +72,7 @@ async function toggleAlert(sharedArrays, logger) {
       }
       sleep(2000)
     } else {
-      await stopService(serviceName, logger)
+      //await stopService(serviceName, logger)
       if (i === 0) {
         logger.info('START~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')  
       } else if (i > 0 && i <= sharedArrays.support.myNodes.length - 1 ) {
