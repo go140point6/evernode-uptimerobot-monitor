@@ -1,6 +1,8 @@
 # evernode-uptimerobot-monitor
 ### Monitor Evernode status with Uptime Robot
 
+### This version is a failure, seems to work in testing but doesn't in practice. Do not use.
+
 #### Second version - monitor ports from centralized server
 - Monitor all of your evernode hosts from a single centralized server.
 - Creates a dummy service listening on user-defined port for each evernode monitored.
